@@ -17,11 +17,16 @@ enum APIError: LocalizedError {
 /// Thin async wrapper over the PokeRouter HTTP API. One instance per app is
 /// plenty; it is stateless apart from the base URL.
 struct PokeRouterAPI {
-    var baseURL: URL
+    /// When `nil`, every request resolves `APIConfig.baseURL` live, so changing
+    /// the backend in Settings takes effect immediately. Settings' "Test
+    /// connection" passes an explicit override to probe a not-yet-saved URL.
+    private let baseURLOverride: URL?
     var session: URLSession
 
-    init(baseURL: URL = APIConfig.baseURL, session: URLSession = .shared) {
-        self.baseURL = baseURL
+    var baseURL: URL { baseURLOverride ?? APIConfig.baseURL }
+
+    init(baseURL: URL? = nil, session: URLSession = .shared) {
+        self.baseURLOverride = baseURL
         self.session = session
     }
 

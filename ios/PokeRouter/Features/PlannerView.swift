@@ -7,6 +7,7 @@ struct PlannerView: View {
     @StateObject private var model = PlannerViewModel()
     @StateObject private var location = LocationProvider()
     @StateObject private var search = DestinationSearch()
+    @State private var showingSettings = false
 
     var body: some View {
         NavigationStack {
@@ -22,6 +23,19 @@ struct PlannerView: View {
             }
             .navigationTitle("PokéRouter")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showingSettings = true
+                    } label: {
+                        Image(systemName: "gear")
+                    }
+                    .accessibilityLabel("Settings")
+                }
+            }
+            .sheet(isPresented: $showingSettings) {
+                SettingsView()
+            }
             .task {
                 location.start()
                 await model.refreshTesla()
