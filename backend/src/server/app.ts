@@ -5,6 +5,7 @@ import type { RoutingProvider } from '../routing/types';
 import { planCorridorRoute } from '../planner/corridor';
 import type { PlanRequest } from '../planner/types';
 import type { LngLat } from '../geo/geo';
+import { registerShareRoutes } from '../share/routes';
 
 interface Deps {
   store: MachineStore;
@@ -119,6 +120,9 @@ export function buildApp({ store, routing }: Deps): FastifyInstance {
       };
     },
   );
+
+  // Universal delivery: GPX export + canonical map deep links.
+  registerShareRoutes(app, { routing });
 
   return app;
 }

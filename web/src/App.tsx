@@ -3,7 +3,7 @@ import MapView, { type MapStop } from './components/MapView';
 import DestinationSearch from './components/DestinationSearch';
 import { api } from './api/client';
 import { reverseGeocode } from './lib/geocode';
-import { googleMapsLink, appleMapsLink } from './lib/deeplinks';
+import ShareRoute from './components/ShareRoute';
 import { formatKm, formatMiles, formatDuration } from './lib/format';
 import type { CandidateMachine, Health, LatLng, PlanResult, RetailerCount } from './types';
 
@@ -192,7 +192,6 @@ export default function App() {
     });
   }
 
-  const stopPoints = itinerary.map((s) => ({ lat: s.lat, lng: s.lng }));
   const canSend = origin && destination;
   const addedMeters =
     route && baseSummary ? route.distanceMeters - baseSummary.distanceMeters : 0;
@@ -371,29 +370,15 @@ export default function App() {
           </section>
         )}
 
-        {canSend && route && (
-          <section className="panel">
-            <h2>Send route</h2>
-            <div className="row">
-              <a
-                className="btn-link"
-                href={googleMapsLink(origin, stopPoints, destination)}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Google Maps
-              </a>
-              <a
-                className="btn-link"
-                href={appleMapsLink(origin, stopPoints, destination)}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Apple Maps
-              </a>
-            </div>
-            <p className="muted">Tesla send-to-car comes in a later phase.</p>
-          </section>
+        {origin && destination && route && (
+          <ShareRoute
+            origin={origin}
+            originLabel={originLabel}
+            destination={destination}
+            destinationLabel={destinationLabel}
+            stops={itinerary}
+            isRoadRouting={!!health?.routing.isRoadRouting}
+          />
         )}
       </aside>
 

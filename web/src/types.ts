@@ -73,3 +73,14 @@ export interface PlanRequest {
   maxAddedMetersPerStop?: number;
   retailers?: string[];
 }
+
+export interface NamedLatLng extends LatLng {
+  name?: string;
+}
+
+export interface ShareBody {
+  origin: NamedLatLng;
+  destination: NamedLatLng;
+  stops?: NamedLatLng[];
+  name?: string;
+}

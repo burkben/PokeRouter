@@ -5,6 +5,7 @@ import type {
   PlanResult,
   RetailerCount,
   RouteResult,
+  ShareBody,
 } from '../types';
 
 // Base URL for the backend. In dev this is "/api" (proxied by Vite to the
@@ -39,4 +40,13 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ points }),
     }),
+  shareGpx: async (body: ShareBody): Promise<Blob> => {
+    const res = await fetch(`${API_BASE}/share/gpx`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error(`Could not build GPX (HTTP ${res.status})`);
+    return res.blob();
+  },
 };
