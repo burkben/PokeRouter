@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	  CarPlay is gated by Apple. Once your CarPlay entitlement request is
+	  approved (see ios/README.md), add the key below and regenerate your
+	  provisioning profile:
+
+	    <key>com.apple.developer.carplay-maps</key>
+	    <true/>
+
+	  It is intentionally omitted by default so the iPhone app builds and runs
+	  with a normal (even free) signing profile. The CarPlay *code* compiles
+	  without it — the entitlement only governs runtime activation on a device.
+	-->
+</dict>
+</plist>
