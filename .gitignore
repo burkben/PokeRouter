@@ -1,0 +1,11 @@
+node_modules/
+**/node_modules/
+dist/
+build/
+.env
+.env.local
+*.log
+
+# Harvested dataset snapshots (regenerable via `npm run harvest`).
+# The committed resilience snapshot at backend/data/seed/ is intentionally tracked.
+backend/data/*.json

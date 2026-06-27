@@ -1,0 +1,24 @@
+{
+  "name": "pokerouter-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "PokeRouter backend — vending machine data harvester and (later) corridor routing API.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "harvest": "tsx src/harvester/harvest.ts",
+    "load:db": "tsx src/db/load.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "@types/pg": "^8.11.10",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

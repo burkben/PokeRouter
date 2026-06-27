@@ -1,0 +1,20 @@
+# PostGIS for PokeRouter (optional — needed only for `npm run load:db`).
+# Usage:
+#   docker compose up -d
+#   DATABASE_URL=postgres://pokerouter:pokerouter@localhost:5432/pokerouter npm run load:db
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: pokerouter-db
+    environment:
+      POSTGRES_USER: pokerouter
+      POSTGRES_PASSWORD: pokerouter
+      POSTGRES_DB: pokerouter
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
