@@ -9,3 +9,7 @@ build/
 # Harvested dataset snapshots (regenerable via `npm run harvest`).
 # The committed resilience snapshot at backend/data/seed/ is intentionally tracked.
 backend/data/*.json
+
+# Tesla (P4): persisted user tokens + the Fleet API public key never get committed.
+backend/data/tesla-tokens.json
+backend/data/*.pem

@@ -9,6 +9,7 @@ export interface Health {
   status: string;
   machines: number;
   routing: { provider: string; isRoadRouting: boolean };
+  tesla?: { mode: TeslaMode };
 }
 
 export interface RetailerCount {
@@ -83,4 +84,33 @@ export interface ShareBody {
   destination: NamedLatLng;
   stops?: NamedLatLng[];
   name?: string;
+}
+
+export type TeslaMode = 'mock' | 'live' | 'disabled';
+
+export interface TeslaStatus {
+  mode: TeslaMode;
+  configured: boolean;
+  connected: boolean;
+  vehicleCount?: number;
+}
+
+export interface TeslaVehicle {
+  id: string;
+  vin: string;
+  displayName: string;
+  state: string;
+}
+
+export interface TeslaSendBody {
+  vehicleTag: string;
+  origin?: NamedLatLng;
+  destination: NamedLatLng;
+  stops?: NamedLatLng[];
+}
+
+export interface TeslaSendResult {
+  sent: true;
+  url: string;
+  vehicle: string;
 }

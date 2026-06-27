@@ -6,10 +6,13 @@ import { planCorridorRoute } from '../planner/corridor';
 import type { PlanRequest } from '../planner/types';
 import type { LngLat } from '../geo/geo';
 import { registerShareRoutes } from '../share/routes';
+import { registerTeslaRoutes } from '../tesla/routes';
+import { loadTeslaConfig, type TeslaConfig, type TeslaProvider } from '../tesla';
 
 interface Deps {
   store: MachineStore;
   routing: RoutingProvider;
+  tesla?: { provider: TeslaProvider | null; config: TeslaConfig };
 }
 
 const latLngSchema = {
@@ -59,7 +62,7 @@ const nearQuerySchema = {
 } as const;
 
 /** Build the Fastify app with routes wired to the given store and router. */
-export function buildApp({ store, routing }: Deps): FastifyInstance {
+export function buildApp({ store, routing, tesla }: Deps): FastifyInstance {
   const app = Fastify({ logger: true });
 
   // Permissive CORS for the web planner. Override the allowed origin in
@@ -74,6 +77,7 @@ export function buildApp({ store, routing }: Deps): FastifyInstance {
     status: 'ok',
     machines: store.size,
     routing: { provider: routing.name, isRoadRouting: routing.isRoadRouting },
+    tesla: { mode: tesla?.provider?.mode ?? 'disabled' },
   }));
 
   app.get('/retailers', async () => ({ retailers: store.retailers() }));
@@ -124,5 +128,17 @@ export function buildApp({ store, routing }: Deps): FastifyInstance {
   // Universal delivery: GPX export + canonical map deep links.
   registerShareRoutes(app, { routing });
 
+  // Tesla send-to-car (env-gated; routes always register and self-report state).
+  registerTeslaRoutes(app, {
+    config: tesla?.config ?? loadTeslaConfigFallback(),
+    provider: tesla?.provider ?? null,
+  });
+
   return app;
+}
+
+// If buildApp is called without Tesla deps (e.g. some tests), fall back to a
+// freshly-loaded config so the .well-known route and status still behave.
+function loadTeslaConfigFallback(): TeslaConfig {
+  return loadTeslaConfig();
 }

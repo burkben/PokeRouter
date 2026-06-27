@@ -112,10 +112,69 @@ curl -s -X POST localhost:8080/plan -H 'content-type: application/json' \
   -d '{"origin":{"lat":47.6062,"lng":-122.3321},"destination":{"lat":45.5152,"lng":-122.6784}}'
 ```
 
+## P4 — Send the route to a Tesla
+
+The planned route can be pushed straight to a parked Tesla's nav via the Tesla
+Fleet API. The integration is **env-gated** and resolves to one of three modes,
+exactly mirroring the ORS pattern:
+
+| Mode | How to enable | What happens |
+| --- | --- | --- |
+| **disabled** (default) | nothing set | Tesla panel hidden in the web UI; endpoints report `disabled`. |
+| **mock** | `TESLA_MOCK=1` | Fully offline demo — two canned vehicles, instant connect, nothing leaves your machine. |
+| **live** | `TESLA_CLIENT_ID` + `TESLA_CLIENT_SECRET` + `TESLA_REDIRECT_URI` (all three) | Real Fleet API: OAuth, list vehicles, send navigation. |
+
+`TESLA_MOCK` wins even if live credentials are also present, so you can always
+fall back to the demo.
+
+### Try the demo (no Tesla account)
+
+```bash
+TESLA_MOCK=1 npm start
+curl -s localhost:8080/tesla/status
+curl -s localhost:8080/tesla/auth/login -i | grep -i location   # auto-connects the mock
+curl -s localhost:8080/tesla/vehicles
+curl -s -X POST localhost:8080/tesla/send -H 'content-type: application/json' \
+  -d '{"vehicleTag":"100021","destination":{"lat":45.5152,"lng":-122.6784,"name":"Home"},
+       "origin":{"lat":47.6062,"lng":-122.3321},"stops":[{"lat":47.5,"lng":-122.4,"name":"Q00562"}]}'
+```
+
+`/tesla/send` returns the Google Maps deep link that gets handed to the car so
+you can eyeball the waypoints before a real send.
+
+### Endpoints
+
+- `GET /tesla/status` → `{ mode, configured, connected, vehicleCount? }`.
+- `GET /tesla/auth/login` → 302 to Tesla's OAuth consent (mock auto-connects).
+- `GET /tesla/auth/callback` → OAuth redirect target; stores tokens, bounces back
+  to `TESLA_WEB_RETURN_URL?tesla=connected`.
+- `GET /tesla/vehicles` → `{ vehicles: [{ id, displayName, state, vin? }] }`.
+- `POST /tesla/send` → `{ vehicleTag, destination, origin?, stops? }` → sends the
+  multi-stop link to the car; returns `{ sent, url, vehicle }`.
+- `GET /.well-known/appspecific/com.tesla.3p.public-key.pem` → serves your Fleet
+  API public key for domain registration (404 until you configure one).
+
+### Real Fleet API setup
+
+1. Register a Tesla developer app at <https://developer.tesla.com>; note the
+   client ID/secret and set your redirect URI to `TESLA_REDIRECT_URI`.
+2. Generate an EC key pair and point `TESLA_PUBLIC_KEY_PEM_PATH` (or inline
+   `TESLA_PUBLIC_KEY_PEM`) at the public key. Host the backend on your verified
+   domain so Tesla can fetch it at the `.well-known` path above.
+3. Set `TESLA_CLIENT_ID`, `TESLA_CLIENT_SECRET`, `TESLA_REDIRECT_URI`, and (if
+   outside North America) `TESLA_AUDIENCE`. Restart, then connect from the web UI.
+
+> **Heads-up — signed commands.** Newer Tesla vehicles reject *unsigned*
+> commands; `navigation_request` must be relayed through Tesla's
+> [vehicle-command HTTP proxy](https://github.com/teslamotors/vehicle-command),
+> with `TESLA_AUDIENCE` pointing at that proxy. This backend issues the command
+> directly, so a live send may fail with an "unsigned command" error on those
+> cars until the proxy is in place. The mock mode sidesteps all of this.
+
 ## Tests
 
 ```bash
-npm test         # node:test — geometry + corridor planner, fully offline
+npm test         # node:test — geometry + corridor planner + Tesla, fully offline
 npm run typecheck
 ```
 
@@ -147,6 +206,19 @@ src/
     types.ts            PlanRequest / PlanResult contract
     corridor.ts         planCorridorRoute(): base route → corridor → insert stops
     corridor.test.ts
+  tesla/
+    types.ts            TeslaProvider interface + NavTarget/TeslaVehicle/etc.
+    config.ts           loadTeslaConfig(): mock | live | disabled
+    config.test.ts
+    store.ts            Token store (in-memory + optional file persist)
+    oauth.ts            Authorize URL + code/refresh token exchange
+    oauth.test.ts
+    nav.ts              navUrlFor(): route → Google Maps deep link for the car
+    mock.ts             MockTeslaProvider (offline demo)
+    mock.test.ts
+    client.ts           LiveTeslaProvider (real Fleet API, wake-on-408 retry)
+    index.ts            selectTeslaProvider(config)
+    routes.ts           registerTeslaRoutes(): /tesla/* endpoints
   server/
     app.ts              Fastify app + route schemas
     index.ts            Entry point: load store, pick provider, listen

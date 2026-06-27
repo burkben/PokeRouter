@@ -281,6 +281,37 @@ input[type='range'] {
   font-size: 12px;
 }
 
+/* Send to Tesla ----------------------------------------------------------- */
+.vehicle-select {
+  width: 100%;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+
+.vehicle-select:hover {
+  border-color: var(--accent);
+}
+
+.tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 7px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--bg);
+  background: var(--accent);
+  border-radius: 999px;
+  vertical-align: middle;
+}
+
 /* Stops list -------------------------------------------------------------- */
 .stops {
   list-style: none;

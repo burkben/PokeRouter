@@ -1,5 +1,6 @@
 import { MachineStore } from '../catalog/machineStore';
 import { selectRoutingProvider } from '../routing';
+import { loadTeslaConfig, selectTeslaProvider } from '../tesla';
 import { buildApp } from './app';
 
 // Load backend/.env into process.env (Node-native, no dependency). The server's
@@ -17,11 +18,18 @@ const HOST = process.env.HOST ?? '0.0.0.0';
 async function main(): Promise<void> {
   const store = await MachineStore.load();
   const routing = await selectRoutingProvider();
-  const app = buildApp({ store, routing });
+  const teslaConfig = loadTeslaConfig();
+  const teslaProvider = selectTeslaProvider(teslaConfig);
+  const app = buildApp({
+    store,
+    routing,
+    tesla: { provider: teslaProvider, config: teslaConfig },
+  });
   await app.listen({ port: PORT, host: HOST });
   app.log.info(
     `Routing provider: ${routing.name} (road routing: ${routing.isRoadRouting})`,
   );
+  app.log.info(`Tesla mode: ${teslaConfig.mode}`);
 }
 
 main().catch((err) => {

@@ -4,6 +4,7 @@ import DestinationSearch from './components/DestinationSearch';
 import { api } from './api/client';
 import { reverseGeocode } from './lib/geocode';
 import ShareRoute from './components/ShareRoute';
+import SendToTesla from './components/SendToTesla';
 import { formatKm, formatMiles, formatDuration } from './lib/format';
 import type { CandidateMachine, Health, LatLng, PlanResult, RetailerCount } from './types';
 
@@ -378,6 +379,16 @@ export default function App() {
             destinationLabel={destinationLabel}
             stops={itinerary}
             isRoadRouting={!!health?.routing.isRoadRouting}
+          />
+        )}
+
+        {origin && destination && route && (
+          <SendToTesla
+            origin={origin}
+            originLabel={originLabel}
+            destination={destination}
+            destinationLabel={destinationLabel}
+            stops={itinerary}
           />
         )}
       </aside>

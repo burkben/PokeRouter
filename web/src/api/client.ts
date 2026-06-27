@@ -6,6 +6,10 @@ import type {
   RetailerCount,
   RouteResult,
   ShareBody,
+  TeslaSendBody,
+  TeslaSendResult,
+  TeslaStatus,
+  TeslaVehicle,
 } from '../types';
 
 // Base URL for the backend. In dev this is "/api" (proxied by Vite to the
@@ -49,4 +53,14 @@ export const api = {
     if (!res.ok) throw new Error(`Could not build GPX (HTTP ${res.status})`);
     return res.blob();
   },
+  teslaStatus: () => request<TeslaStatus>('/tesla/status'),
+  teslaVehicles: () => request<{ vehicles: TeslaVehicle[] }>('/tesla/vehicles'),
+  teslaSend: (body: TeslaSendBody) =>
+    request<TeslaSendResult>('/tesla/send', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  // Opened in a popup; the backend 302-redirects to Tesla (live) or straight
+  // back to the app with ?tesla=connected (mock).
+  teslaLoginUrl: () => `${API_BASE}/tesla/auth/login`,
 };
