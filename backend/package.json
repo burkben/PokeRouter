@@ -10,9 +10,13 @@
   "scripts": {
     "harvest": "tsx src/harvester/harvest.ts",
     "load:db": "tsx src/db/load.ts",
+    "dev": "tsx watch src/server/index.ts",
+    "start": "tsx src/server/index.ts",
+    "test": "tsx --test \"src/**/*.test.ts\"",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "fastify": "^5.2.0",
     "pg": "^8.13.1"
   },
   "devDependencies": {
