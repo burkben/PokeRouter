@@ -5,6 +5,7 @@ import { haversineMeters, type LngLat } from '../geo/geo';
 import type { RoutingProvider } from '../routing/types';
 import {
   machineAddress,
+  type CandidateMachine,
   type PlanRequest,
   type PlanResult,
   type PlannedStop,
@@ -14,6 +15,8 @@ const DEFAULTS = {
   maxStops: 5,
   corridorMeters: 3000,
   addedPerStopMultiplier: 4,
+  /** Cap on candidates returned to the UI, to bound payload size. */
+  maxCandidatesReturned: 250,
 };
 
 interface Insertion {
@@ -72,8 +75,24 @@ export async function planCorridorRoute(
 
   const base = await provider.route([origin, destination]);
 
-  const candidates = store.withinCorridor(base.coordinates, corridorMeters);
+  let candidates = store.withinCorridor(base.coordinates, corridorMeters);
+  if (req.retailers && req.retailers.length > 0) {
+    const wanted = new Set(req.retailers);
+    candidates = candidates.filter((h) => wanted.has(h.machine.retailer));
+  }
   const candidateCount = candidates.length;
+
+  const candidateList: CandidateMachine[] = candidates
+    .slice(0, DEFAULTS.maxCandidatesReturned)
+    .map((h) => ({
+      id: h.machine.id,
+      name: h.machine.name,
+      retailer: h.machine.retailer,
+      address: machineAddress(h.machine),
+      lat: h.machine.lat,
+      lng: h.machine.lng,
+      offRouteMeters: Math.round(h.distanceMeters),
+    }));
 
   // Parallel arrays: `ordered` drives geometry/routing; `nodeStops` records which
   // ordered positions are machine stops (endpoints are null), so we can read the
@@ -132,6 +151,7 @@ export async function planCorridorRoute(
     },
     stops,
     candidateCount,
+    candidates: candidateList,
     routeGeometry: planned.coordinates,
     routing: { provider: provider.name, isRoadRouting: provider.isRoadRouting },
   };

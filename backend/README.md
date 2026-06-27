@@ -73,6 +73,8 @@ not follow roads — a warning is logged).
 - `GET /health` → `{ status, machines, routing: { provider, isRoadRouting } }`.
 - `GET /machines/near?lat=&lng=&radiusMeters=&limit=` → machines near a point,
   nearest first.
+- `GET /retailers` → `{ retailers: [{ retailer, count }] }`, most common first
+  (drives the web app's retailer filter).
 - `POST /plan` → corridor plan. Body:
 
   ```jsonc
@@ -81,13 +83,19 @@ not follow roads — a warning is logged).
     "destination": { "lat": 45.5152, "lng": -122.6784 },
     "maxStops": 5,                  // optional, default 5
     "corridorMeters": 3000,         // optional, max off-route distance, default 3000
-    "maxAddedMetersPerStop": 12000  // optional, default corridorMeters * 4
+    "maxAddedMetersPerStop": 12000, // optional, default corridorMeters * 4
+    "retailers": ["Safeway", "Kroger"] // optional, restrict to these retailers
   }
   ```
 
   Returns the base vs. planned distance/time, the ordered vending-machine stops
-  with their off-route distance and added detour, the candidate count, and the
-  final route geometry as `[lng, lat]` tuples.
+  with their off-route distance and added detour, the candidate count, the
+  corridor `candidates` (capped, nearest-route first, for selection in the UI),
+  and the final route geometry as `[lng, lat]` tuples.
+
+- `POST /route` → route through explicit waypoints (used by the web app when the
+  user manually adds/removes/reorders stops). Body: `{ "points": [{lat,lng}, …] }`
+  (≥ 2 points). Returns `{ distanceMeters, durationSeconds, routeGeometry, routing }`.
 
 ### Example
 

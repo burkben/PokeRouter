@@ -1,8 +1,10 @@
 import Fastify, { type FastifyInstance } from 'fastify';
+import cors from '@fastify/cors';
 import type { MachineStore } from '../catalog/machineStore';
 import type { RoutingProvider } from '../routing/types';
 import { planCorridorRoute } from '../planner/corridor';
 import type { PlanRequest } from '../planner/types';
+import type { LngLat } from '../geo/geo';
 
 interface Deps {
   store: MachineStore;
@@ -27,6 +29,20 @@ const planBodySchema = {
     maxStops: { type: 'integer', minimum: 0, maximum: 25 },
     corridorMeters: { type: 'number', minimum: 0, maximum: 50_000 },
     maxAddedMetersPerStop: { type: 'number', minimum: 0, maximum: 200_000 },
+    retailers: { type: 'array', items: { type: 'string' }, maxItems: 100 },
+  },
+} as const;
+
+const routeBodySchema = {
+  type: 'object',
+  required: ['points'],
+  properties: {
+    points: {
+      type: 'array',
+      minItems: 2,
+      maxItems: 50,
+      items: latLngSchema,
+    },
   },
 } as const;
 
@@ -45,11 +61,21 @@ const nearQuerySchema = {
 export function buildApp({ store, routing }: Deps): FastifyInstance {
   const app = Fastify({ logger: true });
 
+  // Permissive CORS for the web planner. Override the allowed origin in
+  // production via CORS_ORIGIN (comma-separated); defaults to reflecting any
+  // origin, which is fine for local dev and a public read-only planner.
+  const corsOrigin = process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(',').map((s) => s.trim())
+    : true;
+  app.register(cors, { origin: corsOrigin });
+
   app.get('/health', async () => ({
     status: 'ok',
     machines: store.size,
     routing: { provider: routing.name, isRoadRouting: routing.isRoadRouting },
   }));
+
+  app.get('/retailers', async () => ({ retailers: store.retailers() }));
 
   app.get<{
     Querystring: { lat: number; lng: number; radiusMeters: number; limit: number };
@@ -75,6 +101,23 @@ export function buildApp({ store, routing }: Deps): FastifyInstance {
     '/plan',
     { schema: { body: planBodySchema } },
     async (req) => planCorridorRoute(routing, store, req.body),
+  );
+
+  // Route through an explicit, already-ordered set of waypoints. Used by the
+  // web planner after the user manually adds, removes, or reorders stops.
+  app.post<{ Body: { points: Array<{ lat: number; lng: number }> } }>(
+    '/route',
+    { schema: { body: routeBodySchema } },
+    async (req) => {
+      const waypoints: LngLat[] = req.body.points.map((p) => [p.lng, p.lat]);
+      const result = await routing.route(waypoints);
+      return {
+        distanceMeters: Math.round(result.distanceMeters),
+        durationSeconds: Math.round(result.durationSeconds),
+        routeGeometry: result.coordinates,
+        routing: { provider: routing.name, isRoadRouting: routing.isRoadRouting },
+      };
+    },
   );
 
   return app;

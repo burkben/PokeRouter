@@ -1,0 +1,42 @@
+import type {
+  Health,
+  LatLng,
+  PlanRequest,
+  PlanResult,
+  RetailerCount,
+  RouteResult,
+} from '../types';
+
+// Base URL for the backend. In dev this is "/api" (proxied by Vite to the
+// backend). In production, set VITE_API_BASE to the deployed backend origin.
+const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined) ?? '/api';
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...init,
+    headers: { 'content-type': 'application/json', ...(init?.headers ?? {}) },
+  });
+  if (!res.ok) {
+    let detail = `HTTP ${res.status}`;
+    try {
+      const body = (await res.json()) as { message?: string };
+      if (body.message) detail = body.message;
+    } catch {
+      // non-JSON error body; keep the status line
+    }
+    throw new Error(detail);
+  }
+  return (await res.json()) as T;
+}
+
+export const api = {
+  health: () => request<Health>('/health'),
+  retailers: () => request<{ retailers: RetailerCount[] }>('/retailers'),
+  plan: (body: PlanRequest) =>
+    request<PlanResult>('/plan', { method: 'POST', body: JSON.stringify(body) }),
+  route: (points: LatLng[]) =>
+    request<RouteResult>('/route', {
+      method: 'POST',
+      body: JSON.stringify({ points }),
+    }),
+};

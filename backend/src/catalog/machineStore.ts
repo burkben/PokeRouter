@@ -49,6 +49,17 @@ export class MachineStore {
     return new MachineStore(machines);
   }
 
+  /** Distinct retailers with machine counts, most common first. */
+  retailers(): Array<{ retailer: string; count: number }> {
+    const counts = new Map<string, number>();
+    for (const m of this.machines) {
+      counts.set(m.retailer, (counts.get(m.retailer) ?? 0) + 1);
+    }
+    return [...counts.entries()]
+      .map(([retailer, count]) => ({ retailer, count }))
+      .sort((a, b) => b.count - a.count || a.retailer.localeCompare(b.retailer));
+  }
+
   /** Machines within `radiusMeters` of a point, nearest first. */
   near(center: { lat: number; lng: number }, radiusMeters: number, limit = 50): MachineHit[] {
     const c: LngLat = [center.lng, center.lat];

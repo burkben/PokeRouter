@@ -19,6 +19,20 @@ export interface PlanRequest {
    * costing more than this are skipped. Defaults to `corridorMeters * 4`.
    */
   maxAddedMetersPerStop?: number;
+  /** If set, only machines from these retailers are considered. */
+  retailers?: string[];
+}
+
+/** A machine that fell inside the corridor (offered to the UI as selectable). */
+export interface CandidateMachine {
+  id: string;
+  name: string;
+  retailer: string;
+  address: string;
+  lat: number;
+  lng: number;
+  /** Distance from the base route, in meters. */
+  offRouteMeters: number;
 }
 
 /** A machine selected as a stop, with where it landed and what it cost. */
@@ -57,6 +71,8 @@ export interface PlanResult {
   stops: PlannedStop[];
   /** How many machines fell within the corridor before stop selection. */
   candidateCount: number;
+  /** The corridor machines (capped), nearest-to-route first, for selection in the UI. */
+  candidates: CandidateMachine[];
   /** Final route geometry as `[lng, lat]` tuples. */
   routeGeometry: [number, number][];
   /** Routing backend used, and whether it follows roads. */
