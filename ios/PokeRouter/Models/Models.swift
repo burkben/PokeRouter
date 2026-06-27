@@ -125,6 +125,8 @@ struct PlanResult: Codable {
     var candidates: [CandidateMachine]
     var routeGeometry: [[Double]]
     var routing: RoutingInfo
+    /// The controls actually applied; optional for forward/backward compatibility.
+    var budget: PlanBudget?
 
     /// routeGeometry is [[lng, lat], …]; expose it as map coordinates.
     var coordinates: [CLLocationCoordinate2D] {
@@ -135,10 +137,20 @@ struct PlanResult: Codable {
     }
 }
 
+/// Echo of the planning controls the backend actually applied. `corridorMeters`
+/// is derived from the time budget when one is supplied.
+struct PlanBudget: Codable {
+    var maxStops: Int
+    var corridorMeters: Double
+    var maxAddedDurationSeconds: Double?
+    var estimatedAddedDurationSeconds: Double
+}
+
 struct PlanRequest: Codable {
     var origin: LatLng
     var destination: LatLng
     var maxStops: Int?
+    var maxAddedDurationSeconds: Double?
     var corridorMeters: Double?
     var maxAddedMetersPerStop: Double?
     var retailers: [String]?

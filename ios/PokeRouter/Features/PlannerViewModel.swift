@@ -11,7 +11,7 @@ final class PlannerViewModel: ObservableObject {
     @Published var originName: String = "Current location"
     @Published var destination: PlaceResult?
     @Published var maxStops: Double = 3
-    @Published var corridorMiles: Double = 5
+    @Published var extraMinutes: Double = 15
 
     // Output
     @Published private(set) var plan: PlanResult?
@@ -47,7 +47,8 @@ final class PlannerViewModel: ObservableObject {
             origin: LatLng(origin),
             destination: LatLng(destination.coordinate),
             maxStops: Int(maxStops),
-            corridorMeters: corridorMiles * 1609.34,
+            maxAddedDurationSeconds: extraMinutes * 60,
+            corridorMeters: nil,
             maxAddedMetersPerStop: nil,
             retailers: nil
         )

@@ -150,11 +150,11 @@ struct PlannerView: View {
             Slider(value: $model.maxStops, in: 1...8, step: 1)
 
             HStack {
-                Text("Corridor").font(.footnote)
+                Text("Extra time").font(.footnote)
                 Spacer()
-                Text("\(Int(model.corridorMiles)) mi").font(.footnote.weight(.semibold))
+                Text("\(Int(model.extraMinutes)) min").font(.footnote.weight(.semibold))
             }
-            Slider(value: $model.corridorMiles, in: 1...25, step: 1)
+            Slider(value: $model.extraMinutes, in: 5...60, step: 5)
         }
     }
 

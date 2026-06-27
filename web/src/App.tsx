@@ -26,7 +26,7 @@ export default function App() {
   const [destinationLabel, setDestinationLabel] = useState<string>('');
   const [clickMode, setClickMode] = useState<ClickMode>(null);
 
-  const [corridorKm, setCorridorKm] = useState(3);
+  const [maxExtraMinutes, setMaxExtraMinutes] = useState(15);
   const [maxStops, setMaxStops] = useState(5);
   const [selectedRetailers, setSelectedRetailers] = useState<Set<string>>(new Set());
 
@@ -106,7 +106,7 @@ export default function App() {
         origin,
         destination,
         maxStops,
-        corridorMeters: Math.round(corridorKm * 1000),
+        maxAddedDurationSeconds: Math.round(maxExtraMinutes * 60),
         retailers: selectedRetailers.size ? [...selectedRetailers] : undefined,
       };
       const [result, baseRoute] = await Promise.all([
@@ -260,16 +260,19 @@ export default function App() {
         <section className="panel">
           <h2>Detour budget</h2>
           <label className="field-label">
-            Corridor width: <strong>{corridorKm.toFixed(1)} km</strong> each side
+            Extra time: <strong>{maxExtraMinutes} min</strong> of detours
           </label>
           <input
             type="range"
-            min={0.5}
-            max={15}
-            step={0.5}
-            value={corridorKm}
-            onChange={(e) => setCorridorKm(Number(e.target.value))}
+            min={5}
+            max={60}
+            step={5}
+            value={maxExtraMinutes}
+            onChange={(e) => setMaxExtraMinutes(Number(e.target.value))}
           />
+          <p className="note">
+            We&apos;ll add the best vending stops that fit within this much extra driving time.
+          </p>
           <label className="field-label">
             Max stops: <strong>{maxStops}</strong>
           </label>
@@ -327,7 +330,11 @@ export default function App() {
               <div>
                 <span className="stat-label">Added detour</span>
                 <span className="stat-value">{formatMiles(Math.max(0, addedMeters))}</span>
-                <span className="stat-sub">+{formatDuration(Math.max(0, addedSeconds))}</span>
+                <span className="stat-sub">
+                  +{formatDuration(Math.max(0, addedSeconds))}
+                  {planResult?.budget.maxAddedDurationSeconds != null &&
+                    ` of ${Math.round(planResult.budget.maxAddedDurationSeconds / 60)} min`}
+                </span>
               </div>
               <div>
                 <span className="stat-label">Stops</span>

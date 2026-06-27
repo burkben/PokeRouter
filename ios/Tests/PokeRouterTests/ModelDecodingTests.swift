@@ -32,7 +32,8 @@ final class ModelDecodingTests: XCTestCase {
             {"id":"rec2","name":"Q00999","retailer":"Target","address":"2 Oak Ave","lat":46.4,"lng":-122.95,"offRouteMeters":1200}
           ],
           "routeGeometry":[[-122.33,47.6],[-122.68,45.52]],
-          "routing":{"provider":"openrouteservice","isRoadRouting":true}
+          "routing":{"provider":"openrouteservice","isRoadRouting":true},
+          "budget":{"maxStops":5,"corridorMeters":12000,"maxAddedDurationSeconds":900,"estimatedAddedDurationSeconds":540}
         }
         """.data(using: .utf8)!
 
@@ -40,6 +41,8 @@ final class ModelDecodingTests: XCTestCase {
         XCTAssertEqual(plan.stops.count, 1)
         XCTAssertEqual(plan.stops.first?.order, 1)
         XCTAssertEqual(plan.candidateCount, 1)
+        XCTAssertEqual(plan.budget?.maxAddedDurationSeconds, 900)
+        XCTAssertEqual(plan.budget?.estimatedAddedDurationSeconds, 540)
         // routeGeometry is [lng, lat]; coordinates must swap to (lat, lng).
         XCTAssertEqual(plan.coordinates.count, 2)
         let first = try XCTUnwrap(plan.coordinates.first)
@@ -84,13 +87,15 @@ final class ModelDecodingTests: XCTestCase {
             origin: LatLng(lat: 47.6, lng: -122.3),
             destination: LatLng(lat: 45.5, lng: -122.6),
             maxStops: 3,
-            corridorMeters: 8046.7,
+            maxAddedDurationSeconds: 900,
+            corridorMeters: nil,
             maxAddedMetersPerStop: nil,
             retailers: ["GameStop"]
         )
         let data = try JSONEncoder().encode(request)
         let back = try decoder.decode(PlanRequest.self, from: data)
         XCTAssertEqual(back.maxStops, 3)
+        XCTAssertEqual(back.maxAddedDurationSeconds, 900)
         XCTAssertEqual(back.retailers, ["GameStop"])
     }
 }

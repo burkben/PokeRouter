@@ -82,6 +82,52 @@ test('no candidates yields a stopless plan equal to the base route', async () =>
   assert.equal(res.planned.distanceMeters, res.base.distanceMeters);
 });
 
+test('a time budget with no explicit corridor derives a tight corridor', async () => {
+  const res = await planCorridorRoute(provider, fixture(), {
+    ...baseReq,
+    maxAddedDurationSeconds: 1,
+  });
+  assert.equal(res.candidateCount, 1, 'derived corridor (min 500 m) admits only the on-route machine');
+  assert.deepEqual(
+    res.stops.map((s) => s.id),
+    ['A'],
+  );
+  assert.equal(res.budget.corridorMeters, 500, 'clamped to the minimum corridor');
+  assert.equal(res.budget.maxAddedDurationSeconds, 1);
+  assert.ok(res.budget.estimatedAddedDurationSeconds <= 1);
+});
+
+test('a time budget caps inserted stops to the added-minutes allowance', async () => {
+  // Hold the corridor fixed so both machines qualify, and let the budget decide.
+  const ample = await planCorridorRoute(provider, fixture(), {
+    ...baseReq,
+    corridorMeters: 3000,
+    maxAddedDurationSeconds: 600,
+  });
+  assert.equal(ample.stops.length, 2, 'a generous budget admits both stops');
+  assert.ok(ample.budget.estimatedAddedDurationSeconds <= 600);
+
+  const tight = await planCorridorRoute(provider, fixture(), {
+    ...baseReq,
+    corridorMeters: 3000,
+    maxAddedDurationSeconds: 1,
+  });
+  assert.equal(tight.candidateCount, 2, 'both machines still qualify for the fixed corridor');
+  assert.deepEqual(
+    tight.stops.map((s) => s.id),
+    ['A'],
+    'only the ~free on-route stop fits a 1s budget; the off-route detour is dropped',
+  );
+  assert.ok(tight.budget.estimatedAddedDurationSeconds <= 1);
+});
+
+test('omitting the time budget keeps the legacy distance-based behavior', async () => {
+  const res = await planCorridorRoute(provider, fixture(), baseReq);
+  assert.equal(res.budget.maxAddedDurationSeconds, null);
+  assert.equal(res.budget.corridorMeters, 3000, 'falls back to the default corridor');
+  assert.equal(res.stops.length, 2);
+});
+
 test('store.near returns machines within the radius, nearest first', () => {
   const hits = fixture().near({ lat: 40, lng: -99.5 }, 20_000);
   assert.deepEqual(

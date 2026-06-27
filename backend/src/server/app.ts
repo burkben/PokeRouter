@@ -31,6 +31,7 @@ const planBodySchema = {
     origin: latLngSchema,
     destination: latLngSchema,
     maxStops: { type: 'integer', minimum: 0, maximum: 25 },
+    maxAddedDurationSeconds: { type: 'number', minimum: 0, maximum: 14_400 },
     corridorMeters: { type: 'number', minimum: 0, maximum: 50_000 },
     maxAddedMetersPerStop: { type: 'number', minimum: 0, maximum: 200_000 },
     retailers: { type: 'array', items: { type: 'string' }, maxItems: 100 },

@@ -57,6 +57,12 @@ export interface PlanResult {
   candidates: CandidateMachine[];
   routeGeometry: [number, number][];
   routing: { provider: string; isRoadRouting: boolean };
+  budget: {
+    maxStops: number;
+    corridorMeters: number;
+    maxAddedDurationSeconds: number | null;
+    estimatedAddedDurationSeconds: number;
+  };
 }
 
 export interface RouteResult {
@@ -70,6 +76,7 @@ export interface PlanRequest {
   origin: LatLng;
   destination: LatLng;
   maxStops?: number;
+  maxAddedDurationSeconds?: number;
   corridorMeters?: number;
   maxAddedMetersPerStop?: number;
   retailers?: string[];

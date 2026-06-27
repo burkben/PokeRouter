@@ -12,6 +12,13 @@ export interface PlanRequest {
   destination: LatLng;
   /** Max number of vending-machine stops to insert (default 5). */
   maxStops?: number;
+  /**
+   * Total extra driving time, in seconds, the detour may add across *all*
+   * stops. When set, this is the primary control: stops are chosen by cheapest
+   * added time until the budget (or `maxStops`) is spent, and the qualifying
+   * corridor is derived from it. This is what the "extra minutes" UI sends.
+   */
+  maxAddedDurationSeconds?: number;
   /** How far off the base route a machine may sit to qualify, in meters (default 3000). */
   corridorMeters?: number;
   /**
@@ -77,6 +84,16 @@ export interface PlanResult {
   routeGeometry: [number, number][];
   /** Routing backend used, and whether it follows roads. */
   routing: { provider: string; isRoadRouting: boolean };
+  /** The controls actually applied — echoes derived values so UIs can be honest. */
+  budget: {
+    maxStops: number;
+    /** Qualifying corridor used (derived from the time budget when one is given). */
+    corridorMeters: number;
+    /** The added-time budget the caller asked for, or null for distance-only planning. */
+    maxAddedDurationSeconds: number | null;
+    /** Greedy estimate of added drive time for the selected stops, in seconds. */
+    estimatedAddedDurationSeconds: number;
+  };
 }
 
 export const machineAddress = (m: Machine): string =>
