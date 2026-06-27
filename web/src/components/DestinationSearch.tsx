@@ -3,9 +3,10 @@ import { geocode, type GeocodeResult } from '../lib/geocode';
 
 interface Props {
   onPick: (r: GeocodeResult) => void;
+  placeholder?: string;
 }
 
-export default function DestinationSearch({ onPick }: Props) {
+export default function DestinationSearch({ onPick, placeholder }: Props) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<GeocodeResult[]>([]);
   const [open, setOpen] = useState(false);
@@ -43,7 +44,7 @@ export default function DestinationSearch({ onPick }: Props) {
     <div className="search">
       <input
         type="text"
-        placeholder="Search destination (address, city, place)…"
+        placeholder={placeholder ?? 'Search destination (address, city, place)…'}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onFocus={() => results.length && setOpen(true)}

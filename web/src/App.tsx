@@ -79,7 +79,7 @@ export default function App() {
         setOriginLabel('My location');
         void reverseGeocode(p).then((l) => l && setOriginLabel(l));
       },
-      () => setError('Could not get your location (permission denied?).'),
+      () => setError('Could not get your location. Search for an origin above or use "Set on map" instead.'),
     );
   }
 
@@ -217,6 +217,14 @@ export default function App() {
         <section className="panel">
           <h2>Route</h2>
           <label className="field-label">Origin</label>
+          <DestinationSearch
+            placeholder="Search origin (address, city, place)…"
+            onPick={(r) => {
+              setOrigin({ lat: r.lat, lng: r.lng });
+              setOriginLabel(r.label);
+              setFitKey((k) => k + 1);
+            }}
+          />
           <div className="row">
             <button type="button" onClick={useMyLocation}>📍 My location</button>
             <button

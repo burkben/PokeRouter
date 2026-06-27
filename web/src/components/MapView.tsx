@@ -87,6 +87,11 @@ export default function MapView(props: MapViewProps) {
     mapRef.current = map;
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
 
+    // Keep the map sized to its container even when the surrounding panel
+    // (e.g. a resizable side panel) changes size.
+    const ro = new ResizeObserver(() => map.resize());
+    ro.observe(containerRef.current);
+
     map.on('load', () => {
       map.addSource('base', { type: 'geojson', data: emptyLine() });
       map.addLayer({
@@ -152,6 +157,7 @@ export default function MapView(props: MapViewProps) {
     });
 
     return () => {
+      ro.disconnect();
       map.remove();
       mapRef.current = null;
       loadedRef.current = false;
