@@ -64,9 +64,16 @@ npm start        # one-off run
 ```
 
 Listens on `PORT` (default `8080`). Routing follows roads when `ORS_API_KEY` is
-set (free key from https://openrouteservice.org); otherwise it falls back to an
+set (free key from https://openrouteservice.org — put it in `backend/.env`,
+which is git-ignored and auto-loaded at startup); otherwise it falls back to an
 offline straight-line stub that lets the planner run without a key (routes will
 not follow roads — a warning is logged).
+
+The key is validated once at startup, so `/health` only reports `isRoadRouting:
+true` when the key actually works (a rejected key logs a clear error and reverts
+to the stub). Once validated, a transient ORS failure (rate limit, quota, or
+network) degrades that single request to the straight-line stub instead of
+failing the whole request.
 
 ### Endpoints
 
@@ -133,8 +140,9 @@ src/
   routing/
     types.ts            RoutingProvider interface + RouteResult
     haversineProvider.ts        Offline straight-line stub
-    openRouteServiceProvider.ts Road routing via OpenRouteService
-    index.ts            selectRoutingProvider() (ORS if keyed, else stub)
+    openRouteServiceProvider.ts Road routing via OpenRouteService (+ key validate())
+    fallbackProvider.ts         Wraps ORS → stub on per-request failure
+    index.ts            selectRoutingProvider() (validates ORS key, else stub)
   planner/
     types.ts            PlanRequest / PlanResult contract
     corridor.ts         planCorridorRoute(): base route → corridor → insert stops
