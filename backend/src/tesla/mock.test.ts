@@ -26,7 +26,7 @@ test('listVehicles throws until connected, then returns canned vehicles', async 
   assert.ok(vehicles[0].displayName);
 });
 
-test('sendNavigation builds a multi-stop Google Maps URL and records it', async () => {
+test('sendNavigation sends the first stop as a single-destination URL and records it', async () => {
   const tesla = new MockTeslaProvider();
   await tesla.handleCallback();
   const [vehicle] = await tesla.listVehicles();
@@ -39,13 +39,35 @@ test('sendNavigation builds a multi-stop Google Maps URL and records it', async 
 
   assert.equal(result.sent, true);
   assert.equal(result.vehicle, vehicle.displayName);
+  // Default leg is the first stop, not the final destination (which would skip it).
+  assert.equal(result.targetIndex, 0);
+  assert.equal(result.targetName, 'Q00562');
+  assert.equal(result.waypointCount, 2);
+  assert.equal(result.isFinal, false);
   const url = new URL(result.url);
-  assert.equal(url.origin + url.pathname, 'https://www.google.com/maps/dir/');
-  assert.equal(url.searchParams.get('waypoints'), '47.5,-122.4');
+  assert.equal(url.origin + url.pathname, 'https://www.google.com/maps/search/');
+  assert.equal(url.searchParams.get('query'), '47.5,-122.4');
   assert.equal(tesla.lastSent?.url, result.url);
 });
 
-test('sendNavigation without an origin produces a search URL', async () => {
+test('sendNavigation honors targetIndex to step to the final destination', async () => {
+  const tesla = new MockTeslaProvider();
+  await tesla.handleCallback();
+  const [vehicle] = await tesla.listVehicles();
+
+  const result = await tesla.sendNavigation(vehicle.id, {
+    stops: [{ lat: 47.5, lng: -122.4, name: 'Q00562' }],
+    destination: { lat: 45.5152, lng: -122.6784, name: 'Home' },
+    targetIndex: 1,
+  });
+
+  assert.equal(result.targetIndex, 1);
+  assert.equal(result.targetName, 'Home');
+  assert.equal(result.isFinal, true);
+  assert.equal(new URL(result.url).searchParams.get('query'), '45.5152,-122.6784');
+});
+
+test('sendNavigation without stops produces a destination search URL', async () => {
   const tesla = new MockTeslaProvider();
   await tesla.handleCallback();
   const [vehicle] = await tesla.listVehicles();
@@ -54,6 +76,8 @@ test('sendNavigation without an origin produces a search URL', async () => {
     destination: { lat: 45.5152, lng: -122.6784 },
   });
   assert.match(result.url, /\/maps\/search\//);
+  assert.equal(result.waypointCount, 1);
+  assert.equal(result.isFinal, true);
 });
 
 test('sendNavigation rejects an unknown vehicle', async () => {

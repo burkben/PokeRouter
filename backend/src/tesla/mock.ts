@@ -1,4 +1,4 @@
-import { navUrlFor } from './nav';
+import { navUrlFor, resolveTarget } from './nav';
 import type {
   NavTarget,
   SendResult,
@@ -54,9 +54,18 @@ export class MockTeslaProvider implements TeslaProvider {
     this.ensureConnected();
     const vehicle = MOCK_VEHICLES.find((v) => v.id === vehicleTag || v.vin === vehicleTag);
     if (!vehicle) throw new Error(`Unknown vehicle: ${vehicleTag}`);
+    const leg = resolveTarget(target);
     const url = navUrlFor(target);
     this.lastSent = { vehicle: vehicle.displayName, url };
-    return { sent: true, url, vehicle: vehicle.displayName };
+    return {
+      sent: true,
+      url,
+      vehicle: vehicle.displayName,
+      targetIndex: leg.index,
+      targetName: leg.point.name,
+      waypointCount: leg.count,
+      isFinal: leg.isFinal,
+    };
   }
 
   private ensureConnected(): void {

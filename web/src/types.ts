@@ -114,10 +114,16 @@ export interface TeslaSendBody {
   origin?: NamedLatLng;
   destination: NamedLatLng;
   stops?: NamedLatLng[];
+  /** Which waypoint in `[...stops, destination]` to send (default 0 = first stop). */
+  targetIndex?: number;
 }
 
 export interface TeslaSendResult {
   sent: true;
   url: string;
   vehicle: string;
+  targetIndex: number;
+  targetName?: string;
+  waypointCount: number;
+  isFinal: boolean;
 }

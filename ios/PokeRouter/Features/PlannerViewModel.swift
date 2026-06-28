@@ -21,6 +21,7 @@ final class PlannerViewModel: ObservableObject {
     // Tesla
     @Published private(set) var teslaStatus: TeslaStatus?
     @Published private(set) var vehicles: [TeslaVehicle] = []
+    @Published var teslaNextIndex: Int = 0
     @Published var statusMessage: String?
 
     private let api: PokeRouterAPI
@@ -56,6 +57,8 @@ final class PlannerViewModel: ObservableObject {
         do {
             let result = try await api.plan(request)
             plan = result
+            teslaNextIndex = 0
+            statusMessage = nil
             store.update(plan: result, originName: originName, destinationName: destination.title)
         } catch {
             errorMessage = (error as? APIError)?.errorDescription ?? error.localizedDescription
@@ -102,7 +105,16 @@ final class PlannerViewModel: ObservableObject {
         }
     }
 
-    func sendToTesla(vehicle: TeslaVehicle) async {
+    /// Ordered legs the car will visit: every stop, then the final destination.
+    var teslaWaypoints: [(label: String, isStop: Bool)] {
+        guard let plan else { return [] }
+        let stops = plan.stops
+            .sorted { $0.order < $1.order }
+            .map { (label: $0.name, isStop: true) }
+        return stops + [(label: destination?.title ?? "Destination", isStop: false)]
+    }
+
+    func sendToTesla(vehicle: TeslaVehicle, targetIndex: Int) async {
         guard let plan else { return }
         statusMessage = nil
         do {
@@ -111,9 +123,22 @@ final class PlannerViewModel: ObservableObject {
                 originName: originName,
                 destinationName: destination?.title ?? "Destination",
                 vehicleTag: vehicle.id,
+                targetIndex: targetIndex,
                 api: api
             )
-            statusMessage = result.sent ? "Sent to \(result.vehicle)." : "Tesla did not accept the route."
+            guard result.sent else {
+                statusMessage = "Tesla did not accept the route."
+                return
+            }
+            let waypoints = teslaWaypoints
+            let count = result.waypointCount ?? waypoints.count
+            let idx = result.targetIndex ?? targetIndex
+            let name = result.targetName
+                ?? (waypoints.indices.contains(idx) ? waypoints[idx].label : nil)
+            let isFinal = result.isFinal ?? (idx == count - 1)
+            let what = isFinal ? "final destination" : "stop \(idx + 1) of \(count)"
+            statusMessage = "Sent \(what)\(name.map { " (\($0))" } ?? "") to \(result.vehicle)."
+            teslaNextIndex = min(targetIndex + 1, max(waypoints.count - 1, 0))
         } catch {
             errorMessage = (error as? APIError)?.errorDescription ?? error.localizedDescription
         }

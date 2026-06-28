@@ -210,10 +210,16 @@ struct TeslaSendBody: Codable {
     var origin: NamedLatLng?
     var destination: NamedLatLng
     var stops: [NamedLatLng]?
+    /// Which waypoint in `[...stops, destination]` to send (default 0 = first stop).
+    var targetIndex: Int?
 }
 
 struct TeslaSendResult: Codable {
     var sent: Bool
     var url: String
     var vehicle: String
+    var targetIndex: Int?
+    var targetName: String?
+    var waypointCount: Int?
+    var isFinal: Bool?
 }

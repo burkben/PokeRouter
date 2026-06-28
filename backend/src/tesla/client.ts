@@ -1,6 +1,6 @@
 import type { TeslaConfig } from './config';
 import { buildAuthorizeUrl, exchangeCodeForTokens, refreshTokens } from './oauth';
-import { navUrlFor } from './nav';
+import { navUrlFor, resolveTarget } from './nav';
 import type { TokenStore } from './store';
 import type {
   NavTarget,
@@ -68,6 +68,7 @@ export class LiveTeslaProvider implements TeslaProvider {
   }
 
   async sendNavigation(vehicleTag: string, target: NavTarget): Promise<SendResult> {
+    const leg = resolveTarget(target);
     const url = navUrlFor(target);
     const body = {
       type: 'share_ext_content_raw',
@@ -88,7 +89,15 @@ export class LiveTeslaProvider implements TeslaProvider {
       const detail = await res.text().catch(() => '');
       throw new Error(`Tesla navigation_request failed (${res.status}): ${detail.slice(0, 300)}`);
     }
-    return { sent: true, url, vehicle: vehicleTag };
+    return {
+      sent: true,
+      url,
+      vehicle: vehicleTag,
+      targetIndex: leg.index,
+      targetName: leg.point.name,
+      waypointCount: leg.count,
+      isFinal: leg.isFinal,
+    };
   }
 
   private command(

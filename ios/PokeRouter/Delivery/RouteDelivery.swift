@@ -43,12 +43,15 @@ enum RouteDelivery {
         await UIApplication.shared.open(url)
     }
 
-    /// Push the route to a Tesla via the backend Fleet-API bridge.
+    /// Push one leg of the route to a Tesla via the backend Fleet-API bridge.
+    /// Tesla only accepts a single destination, so `targetIndex` selects which
+    /// waypoint in `[...stops, destination]` to send (default 0 = first stop).
     static func sendToTesla(
         plan: PlanResult,
         originName: String,
         destinationName: String,
         vehicleTag: String,
+        targetIndex: Int,
         api: PokeRouterAPI
     ) async throws -> TeslaSendResult {
         let stops = plan.stops
@@ -58,7 +61,8 @@ enum RouteDelivery {
             vehicleTag: vehicleTag,
             origin: NamedLatLng(lat: plan.origin.lat, lng: plan.origin.lng, name: originName),
             destination: NamedLatLng(lat: plan.destination.lat, lng: plan.destination.lng, name: destinationName),
-            stops: stops
+            stops: stops,
+            targetIndex: targetIndex
         )
         return try await api.teslaSend(body)
     }

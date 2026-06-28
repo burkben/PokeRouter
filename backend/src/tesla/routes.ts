@@ -27,6 +27,7 @@ const sendBodySchema = {
     origin: namedPointSchema,
     destination: namedPointSchema,
     stops: { type: 'array', items: namedPointSchema, maxItems: 50 },
+    targetIndex: { type: 'integer', minimum: 0, maximum: 50 },
   },
 } as const;
 
@@ -35,6 +36,7 @@ interface SendBody {
   origin?: NamedPoint;
   destination: NamedPoint;
   stops?: NamedPoint[];
+  targetIndex?: number;
 }
 
 /**
@@ -118,8 +120,8 @@ export function registerTeslaRoutes(app: FastifyInstance, { config, provider }: 
       if (!provider.isConnected()) {
         return reply.code(409).send({ error: 'not_connected' });
       }
-      const { vehicleTag, origin, destination, stops } = req.body;
-      const target: NavTarget = { origin, destination, stops };
+      const { vehicleTag, origin, destination, stops, targetIndex } = req.body;
+      const target: NavTarget = { origin, destination, stops, targetIndex };
       try {
         return await provider.sendNavigation(vehicleTag, target);
       } catch (err) {

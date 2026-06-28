@@ -191,22 +191,53 @@ struct PlannerView: View {
     @ViewBuilder
     private var teslaPanel: some View {
         if let status = model.teslaStatus, status.connected, !model.vehicles.isEmpty {
+            let waypoints = model.teslaWaypoints
             VStack(alignment: .leading, spacing: 6) {
                 Text("Send to Tesla").font(.footnote.weight(.semibold))
+
+                ForEach(Array(waypoints.enumerated()), id: \.offset) { index, wp in
+                    let isNext = index == model.teslaNextIndex
+                    HStack(spacing: 6) {
+                        Image(systemName: wp.isStop ? "mappin.circle.fill" : "flag.checkered")
+                            .foregroundStyle(isNext ? Color.accentColor : .secondary)
+                        Text(wp.label)
+                            .font(.caption)
+                            .foregroundStyle(isNext ? .primary : .secondary)
+                            .lineLimit(1)
+                        if isNext {
+                            Text("next")
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(Color.accentColor)
+                        }
+                        Spacer()
+                    }
+                }
+
                 ForEach(model.vehicles) { vehicle in
                     Button {
-                        Task { await model.sendToTesla(vehicle: vehicle) }
+                        Task { await model.sendToTesla(vehicle: vehicle, targetIndex: model.teslaNextIndex) }
                     } label: {
-                        Label(vehicle.displayName, systemImage: "car.fill")
+                        Label(sendLabel(for: vehicle, waypoints: waypoints), systemImage: "car.fill")
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .buttonStyle(.bordered)
                 }
+
                 if let message = model.statusMessage {
                     Text(message).font(.caption).foregroundStyle(.secondary)
                 }
+
+                Text("Tesla accepts one destination at a time, so send each leg as you reach it. Your phone keeps the full multi-stop route.")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
             }
         }
+    }
+
+    private func sendLabel(for vehicle: TeslaVehicle, waypoints: [(label: String, isStop: Bool)]) -> String {
+        let idx = model.teslaNextIndex
+        let name = waypoints.indices.contains(idx) ? waypoints[idx].label : "destination"
+        return model.vehicles.count > 1 ? "\(vehicle.displayName) → \(name)" : "Send next → \(name)"
     }
 
     // MARK: Helpers

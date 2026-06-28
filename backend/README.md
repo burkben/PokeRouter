@@ -136,11 +136,20 @@ curl -s localhost:8080/tesla/auth/login -i | grep -i location   # auto-connects 
 curl -s localhost:8080/tesla/vehicles
 curl -s -X POST localhost:8080/tesla/send -H 'content-type: application/json' \
   -d '{"vehicleTag":"100021","destination":{"lat":45.5152,"lng":-122.6784,"name":"Home"},
-       "origin":{"lat":47.6062,"lng":-122.3321},"stops":[{"lat":47.5,"lng":-122.4,"name":"Q00562"}]}'
+       "origin":{"lat":47.6062,"lng":-122.3321},"stops":[{"lat":47.5,"lng":-122.4,"name":"Q00562"}],
+       "targetIndex":0}'
 ```
 
-`/tesla/send` returns the Google Maps deep link that gets handed to the car so
-you can eyeball the waypoints before a real send.
+`/tesla/send` returns a **single-destination** Google Maps search link for one leg
+of the trip plus `{ targetIndex, targetName, waypointCount, isFinal }` describing
+which waypoint was sent.
+
+> **Why one leg at a time?** Tesla's `navigation_request` parses only a *single*
+> destination out of a shared link — intermediate waypoints are silently dropped,
+> so a full multi-stop link would route the car straight home past every machine.
+> Instead the client walks `[...stops, destination]` and sends one waypoint per
+> `POST /tesla/send` (`targetIndex` defaults to `0` = the next vending machine).
+> Phone handoff (Apple/Google Maps) still gets the whole multi-stop route.
 
 ### Endpoints
 
@@ -149,8 +158,9 @@ you can eyeball the waypoints before a real send.
 - `GET /tesla/auth/callback` → OAuth redirect target; stores tokens, bounces back
   to `TESLA_WEB_RETURN_URL?tesla=connected`.
 - `GET /tesla/vehicles` → `{ vehicles: [{ id, displayName, state, vin? }] }`.
-- `POST /tesla/send` → `{ vehicleTag, destination, origin?, stops? }` → sends the
-  multi-stop link to the car; returns `{ sent, url, vehicle }`.
+- `POST /tesla/send` → `{ vehicleTag, destination, origin?, stops?, targetIndex? }`
+  → sends one waypoint (single-destination link) to the car; returns
+  `{ sent, url, vehicle, targetIndex, targetName?, waypointCount, isFinal }`.
 - `GET /.well-known/appspecific/com.tesla.3p.public-key.pem` → serves your Fleet
   API public key for domain registration (404 until you configure one).
 

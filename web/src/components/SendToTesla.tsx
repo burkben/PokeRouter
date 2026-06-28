@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../api/client';
-import type { LatLng, TeslaStatus, TeslaVehicle } from '../types';
+import type { LatLng, TeslaSendResult, TeslaStatus, TeslaVehicle } from '../types';
 
 interface NamedStop {
   lat: number;
@@ -33,8 +33,40 @@ export default function SendToTesla({
   const [selected, setSelected] = useState<string>('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [sent, setSent] = useState<string | null>(null);
+  const [result, setResult] = useState<TeslaSendResult | null>(null);
+  const [nextIndex, setNextIndex] = useState(0);
+  const [sentIndices, setSentIndices] = useState<number[]>([]);
   const pollRef = useRef<number | null>(null);
+
+  // The ordered legs the car will visit: every stop, then the final destination.
+  const waypoints = useMemo(
+    () => [
+      ...stops.map((s, i) => ({
+        lat: s.lat,
+        lng: s.lng,
+        label: s.label ?? `Stop ${i + 1}`,
+        isStop: true,
+      })),
+      {
+        lat: destination.lat,
+        lng: destination.lng,
+        label: destinationLabel || 'Destination',
+        isStop: false,
+      },
+    ],
+    [stops, destination, destinationLabel],
+  );
+
+  // Reset the stepper whenever the planned route changes.
+  const routeSig = useMemo(
+    () => JSON.stringify([stops.map((s) => [s.lat, s.lng]), [destination.lat, destination.lng]]),
+    [stops, destination],
+  );
+  useEffect(() => {
+    setNextIndex(0);
+    setSentIndices([]);
+    setResult(null);
+  }, [routeSig]);
 
   const refreshStatus = useCallback(async () => {
     try {
@@ -87,13 +119,12 @@ export default function SendToTesla({
     }, 1000);
   }
 
-  async function send() {
+  async function send(index: number) {
     if (!selected) return;
     setBusy(true);
     setError(null);
-    setSent(null);
     try {
-      const result = await api.teslaSend({
+      const r = await api.teslaSend({
         vehicleTag: selected,
         origin: { ...origin, name: originLabel || 'Origin' },
         destination: { ...destination, name: destinationLabel || 'Destination' },
@@ -102,8 +133,11 @@ export default function SendToTesla({
           lng: s.lng,
           name: s.label ?? `Stop ${i + 1}`,
         })),
+        targetIndex: index,
       });
-      setSent(result.vehicle);
+      setResult(r);
+      setSentIndices((prev) => (prev.includes(index) ? prev : [...prev, index]));
+      setNextIndex(Math.min(index + 1, waypoints.length - 1));
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -147,20 +181,51 @@ export default function SendToTesla({
             ))}
           </select>
 
-          <button type="button" onClick={send} disabled={busy || !selected}>
-            {busy ? 'Sending…' : '🚗 Send route to car'}
+          <ol className="tesla-legs">
+            {waypoints.map((w, i) => {
+              const done = sentIndices.includes(i);
+              const isNext = i === nextIndex;
+              return (
+                <li key={i} className={`leg${isNext ? ' next' : ''}${done ? ' done' : ''}`}>
+                  <span className="leg-label">
+                    {w.isStop ? '📍' : '🏁'} {w.label}
+                    {done && <span className="leg-check"> ✓</span>}
+                    {isNext && !done && <span className="leg-tag">next</span>}
+                  </span>
+                  <button
+                    type="button"
+                    className="leg-send"
+                    onClick={() => send(i)}
+                    disabled={busy || !selected}
+                  >
+                    {done ? 'Resend' : 'Send'}
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
+
+          <button type="button" onClick={() => send(nextIndex)} disabled={busy || !selected}>
+            {busy ? 'Sending…' : `🚗 Send next stop → ${waypoints[nextIndex]?.label ?? ''}`}
           </button>
 
-          {sent && (
+          {result && (
             <p className="note">
-              ✓ Sent to <strong>{sent}</strong>
+              ✓ Sent{' '}
+              {result.isFinal
+                ? 'final destination'
+                : `stop ${result.targetIndex + 1} of ${result.waypointCount}`}
+              {result.targetName ? ` (${result.targetName})` : ''} to{' '}
+              <strong>{result.vehicle}</strong>
               {status.mode === 'mock' && ' (demo — nothing left your machine)'}.
             </p>
           )}
 
           <p className="muted" style={{ marginTop: 8 }}>
-            Tesla navigation takes a single shared link, so the car routes to your
-            destination through the stops via Google Maps.
+            Tesla's API accepts only one destination at a time — intermediate stops
+            get dropped — so PokéRouter sends your trip one leg at a time. Tap{' '}
+            <strong>Send next stop</strong> as you reach each machine; your phone's
+            map still has the full multi-stop route.
           </p>
         </>
       )}
